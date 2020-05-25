@@ -1,8 +1,32 @@
 import sys
+import numpy as np
+import pandas as pd
+from sqlalchemy import create_engine
 
 
 def load_data(messages_filepath, categories_filepath):
-    pass
+    """
+    This function loads the csv files of the disaster messages and disaster categories.
+    It will then merge them together to form a single dataset.
+
+    Note:
+        Make sure column 'id' exists in both datasets so that they can be merged.
+
+    Args:
+        messages_filepath (str) -- csv filepath of disaster messages
+        categories_filepath (str) -- csv filepath of disaster categories
+
+    Return:
+        df_merged (df) -- a pandas dataframe consists of the disaster messages and corresponding categories
+
+    """
+
+    messages = pd.read_csv(messages_filepath)
+    categories = pd.read_csv(categories_filepath)
+
+    df_merged = pd.merge(messages, categories, on='id')
+
+    return df_merged
 
 
 def clean_data(df):
