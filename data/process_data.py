@@ -35,6 +35,7 @@ def clean_data(df):
     duplicate disaster messages.
     This function splits the single column with 36 categories to 36 columns and the value of each category column
     will be extracted.
+    If any invalid values (not 0 or 1) are detected in the category columns, the corresponding rows will be removed.
 
     Args:
         df (df) -- a pandas dataframe that consists of disaster messages and corresponding categories,
@@ -75,6 +76,15 @@ def clean_data(df):
     if df_cleaned.duplicated(subset='id').sum() != 0:
         df_cleaned.drop_duplicates(subset='id', inplace=True)
         print("    Duplicated disaster messages found in dataset. Deleting duplicates...")
+
+    # Check if there is any invalid values in the category columns. If yes, drop the corresponding rows
+    for column in categories.columns:
+        invalid_value_counts = df_cleaned[column][(df_cleaned[column] != 0) & (df_cleaned[column] != 1)].value_counts()
+        if len(invalid_value_counts) != 0:
+            if invalid_value_counts.values[0] != 0:
+                print("    Column '{}' has {} invalid values ({}). Dropping rows with invalid values..."
+                      .format(column, invalid_value_counts.values[0], invalid_value_counts.index.tolist()[0]))
+                df_cleaned.drop(df_cleaned[df_cleaned[column] > 1].index, axis=0, inplace=True)
 
     return df_cleaned
 
