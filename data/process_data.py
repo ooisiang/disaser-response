@@ -74,13 +74,25 @@ def clean_data(df):
     # Remove duplicates (id) in the dataset
     if df_cleaned.duplicated(subset='id').sum() != 0:
         df_cleaned.drop_duplicates(subset='id', inplace=True)
-        print("    Duplicate disaster messages found in dataset. Deleting duplicates...")
+        print("    Duplicated disaster messages found in dataset. Deleting duplicates...")
 
     return df_cleaned
 
 
 def save_data(df, database_filename):
-    pass  
+    """
+    This function aims to save a dataset into a sqlite database with the provided name.
+
+    Args:
+        df (df) -- a pandas dataframe that consists of disaster messages and corresponding categories.
+        database_filename (str) -- name of the sqlite database and SQL table.
+
+    Return:
+        none
+    """
+
+    engine = create_engine('sqlite:///{}'.format(database_filename))
+    df.to_sql(database_filename[-3], engine, index=False, if_exists='replace')
 
 
 def main():
