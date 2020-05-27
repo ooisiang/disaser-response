@@ -1,8 +1,30 @@
 import sys
+import numpy as np
+import pandas as pd
+from sqlalchemy import create_engine
+from sklearn.model_selection import train_test_split
 
 
 def load_data(database_filepath):
-    pass
+    """
+    This function loads data from the sqlite database given in database_filepath and construct inputs (X and y) for
+    the training of machine learning model.
+
+    Args:
+        database_filepath (str) -- filepath to the sqlite database
+
+    Return:
+        X (df) -- a dataframe consists of the disaster messages
+        y (df) -- a dataframe consists of the disaster categories
+        category_names - a list of the category names
+    """
+    engine = create_engine('sqlite:///{}'.format(database_filepath))
+    df = pd.read_sql_table('DisasterResponseTable', engine)
+    X = df['message']
+    y = df.iloc[:, -36:]
+    category_names = y.columns.tolist()
+
+    return X, y, category_names
 
 
 def tokenize(text):
