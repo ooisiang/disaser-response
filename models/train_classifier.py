@@ -2,6 +2,13 @@ import sys
 import numpy as np
 import pandas as pd
 from sqlalchemy import create_engine
+
+import string
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+
 from sklearn.model_selection import train_test_split
 
 
@@ -28,7 +35,26 @@ def load_data(database_filepath):
 
 
 def tokenize(text):
-    pass
+    """
+    This function aims to tokenize, normalize and lemmatitze each disaster message in the dataset.
+    This will make all words to lowercase, remove all punctuations and english stopwords from the disaster message.
+
+    Args:
+        text (str) -- single disaster message in the dataset
+
+    Return:
+        words (list) -- a list of words/tokens extracted from the disaster message
+    """
+
+    words = []
+    tokens = word_tokenize(text.lower())
+    lemmatizer = WordNetLemmatizer()
+
+    for token in tokens:
+        if (token not in stopwords.words("english")) & (token not in string.punctuation):
+            words.append(lemmatizer.lemmatize(token, pos='v').strip())
+
+    return words
 
 
 def build_model():
