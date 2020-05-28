@@ -10,6 +10,11 @@ from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
 from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.metrics import confusion_matrix, f1_score, multilabel_confusion_matrix, classification_report
 
 
 def load_data(database_filepath):
@@ -23,13 +28,13 @@ def load_data(database_filepath):
     Return:
         X (df) -- a dataframe consists of the disaster messages
         y (df) -- a dataframe consists of the disaster categories
-        category_names - a list of the category names
+        category_names (df.columns)- a list of the category names
     """
     engine = create_engine('sqlite:///{}'.format(database_filepath))
     df = pd.read_sql_table('DisasterResponseTable', engine)
     X = df['message']
     y = df.iloc[:, -36:]
-    category_names = y.columns.tolist()
+    category_names = y.columns
 
     return X, y, category_names
 
@@ -58,11 +63,88 @@ def tokenize(text):
 
 
 def build_model():
-    pass
+    """
+    This function aims to build a machine learning pipeline model.
+    The pipeline consists of CountVectorizer with the tokenize() function in this file, TfidfTransfomer and
+    RandomForestClassifier.
+
+    Args:
+        none
+
+    Return:
+        pipeline (sklearn model) -- a scikit-learn machine learning pipeline model for data training and prediction.
+    """
+
+    pipeline = Pipeline([('vect', CountVectorizer(tokenizer=tokenize)),
+                         ('tfidf', TfidfTransformer()),
+                         ('clf', MultiOutputClassifier(RandomForestClassifier()))])
+
+    return pipeline
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
-    pass
+    """
+    This function aims to evaluate the performance of a multioutput classifier by returning the overall
+    precision, recall, f1-score and accuracy of the model. Overall scores are computed by taking the mean of the scores
+    of each output/category.
+
+    Args:
+        model (sklearn model) -- a multioutput classifier model
+        X_test (df) -- a test dataset consists of the disaster messages
+        Y_test (df) -- a test dataset consists of the disaster categories (one hot encoding)
+        category_names (df.columns) - a list of the category names
+
+    Return:
+        none
+    """
+
+    # Predict using model
+    y_pred = model.predict(X_test)
+
+    # Convert one hot encodings to the original labels
+    y_pred_labeled = np.multiply(y_pred, category_names)
+    y_test_labeled = np.multiply(np.array(Y_test), category_names)
+
+    # Convert the y_pred_labeled and y_test_labeled from 2d arrays to 1d arrays
+    y_pred_labeled_1d = np.reshape(y_pred_labeled, y_pred_labeled.shape[0] * y_pred_labeled.shape[1])
+    y_test_labeled_1d = np.reshape(y_test_labeled, y_test_labeled.shape[0] * y_test_labeled.shape[1])
+
+    # Compute the overall accuracy of the model
+    accuracy = cal_accuracy(np.array(Y_test), y_pred)
+
+    # Compute the classification results for each category
+    classification_results = classification_report(y_test_labeled_1d, y_pred_labeled_1d, labels=category_names,
+                                                   output_dict=True, zero_division=1)
+    classification_results = pd.DataFrame(classification_results).T
+
+    # Compute the mean of the classification results (precision, recall, f1-score, support)
+    precision, recall, f1_score, support = classification_results.mean()
+
+    print("    Precision: {}\n    Recall: {}\n    F1-Score: {}\n    Accuracy: {}\n"
+          .format(precision, recall, f1_score, accuracy))
+
+
+def cal_accuracy(y_act, y_pred):
+    """
+    This function aims to calculate the accuracy of the multioutput classifier.
+
+    Args:
+        y_act (np array) -- actual labels of the test datasets (one hot encoding)
+        y_pred (np array) -- predicted labels of the test datasets (one hot encoding)
+
+    Return:
+        accuracy (float) -- accuracy of the multioutput classifier.
+    """
+
+    wrong_counts = 0
+    total_rows = y_pred.shape[0]
+
+    for row in range(total_rows):
+        wrong_counts += sum(abs(y_act[row] - y_pred[row]))
+
+    accuracy = 1 - (wrong_counts / (total_rows * y_pred.shape[1]))
+
+    return accuracy
 
 
 def save_model(model, model_filepath):
@@ -74,7 +156,7 @@ def main():
         database_filepath, model_filepath = sys.argv[1:]
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
         X, Y, category_names = load_data(database_filepath)
-        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
         
         print('Building model...')
         model = build_model()
