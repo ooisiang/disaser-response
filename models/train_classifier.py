@@ -9,12 +9,13 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.metrics import confusion_matrix, f1_score, multilabel_confusion_matrix, classification_report
+import pickle
 
 
 def load_data(database_filepath):
@@ -64,22 +65,32 @@ def tokenize(text):
 
 def build_model():
     """
-    This function aims to build a machine learning pipeline model.
+    This function aims to build a machine learning pipeline model with GridSearchCV.
     The pipeline consists of CountVectorizer with the tokenize() function in this file, TfidfTransfomer and
     RandomForestClassifier.
+    GridSearchCV is used to tune the hyperparameters of the transformers and classifier.
 
     Args:
         none
 
     Return:
-        pipeline (sklearn model) -- a scikit-learn machine learning pipeline model for data training and prediction.
+        cv (sklearn model) -- a scikit-learn machine learning pipeline model after hyperparameters grid search
+         for data training and prediction.
     """
 
     pipeline = Pipeline([('vect', CountVectorizer(tokenizer=tokenize)),
-                         ('tfidf', TfidfTransformer()),
+                         ('tfidf', TfidfTransformer(use_idf=True, smooth_idf=True)),
                          ('clf', MultiOutputClassifier(RandomForestClassifier()))])
 
-    return pipeline
+    parameters = {
+        'vect__ngram_range': ((1, 1), (2, 2)),
+        'clf__estimator__min_samples_split': [2, 4],
+        'clf__estimator__min_samples_leaf': [1, 5]
+    }
+
+    cv = GridSearchCV(pipeline, param_grid=parameters, n_jobs=-1)
+
+    return cv
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
@@ -148,7 +159,19 @@ def cal_accuracy(y_act, y_pred):
 
 
 def save_model(model, model_filepath):
-    pass
+    """
+    This function aims to save a trained model to the given destination with the given pickle file name.
+
+    Args:
+        model (sklearn model) -- trained model for predictions
+        model_filepath (str) -- filepath with name of the pickle file where the trained model should be saved.
+
+    Return:
+        none
+    """
+
+    # save the model to disk
+    pickle.dump(model, open(model_filepath, 'wb'))
 
 
 def main():
