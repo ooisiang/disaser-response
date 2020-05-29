@@ -79,7 +79,7 @@ def build_model():
     """
 
     pipeline = Pipeline([('vect', CountVectorizer(tokenizer=tokenize)),
-                         ('tfidf', TfidfTransformer(use_idf=True, smooth_idf=True)),
+                         ('tfidf', TfidfTransformer()),
                          ('clf', MultiOutputClassifier(RandomForestClassifier()))])
 
     parameters = {
