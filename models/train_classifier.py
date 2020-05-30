@@ -6,8 +6,9 @@ from sqlalchemy import create_engine
 import string
 import nltk
 from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
+from nltk.corpus import stopwords, wordnet
 from nltk.stem import WordNetLemmatizer
+import re
 
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.pipeline import Pipeline
@@ -41,10 +42,30 @@ def load_data(database_filepath):
     return X, y, category_names
 
 
+def get_wordnet_tag(pos):
+    """
+    This function aims to convert limited NLTK pos tags to WordNet tags based on a self-constructed dict.
+    This function only considers adjectives, nouns, verbs and adverbs. The other pos tags will be converted to nouns.
+
+    Args:
+        pos (str) -- first character of the nltk pos tag
+
+    Return:
+        wordnet tag (str) -- WordNet tag
+    """
+    tag_dict = {"J": wordnet.ADJ,
+                "N": wordnet.NOUN,
+                "V": wordnet.VERB,
+                "R": wordnet.ADV}
+
+    return tag_dict.get(pos, wordnet.NOUN)
+
+
 def tokenize(text):
     """
     This function aims to tokenize, normalize and lemmatitze each disaster message in the dataset.
     This will make all words to lowercase, remove all punctuations and english stopwords from the disaster message.
+    Token will be lemmatized according to its WordNet tag.
 
     Args:
         text (str) -- single disaster message in the dataset
@@ -54,12 +75,14 @@ def tokenize(text):
     """
 
     words = []
+    text = re.sub(r"[^a-zA-Z0-9]", " ", text)
     tokens = word_tokenize(text.lower())
     lemmatizer = WordNetLemmatizer()
 
     for token in tokens:
-        if (token not in stopwords.words("english")) & (token not in string.punctuation):
-            words.append(lemmatizer.lemmatize(token, pos='v').strip())
+        if token not in stopwords.words("english"):
+            token_pos = nltk.pos_tag(tokens)[0][1][0]
+            words.append(lemmatizer.lemmatize(token, pos=get_wordnet_tag(token_pos)).strip())
 
     return words
 
