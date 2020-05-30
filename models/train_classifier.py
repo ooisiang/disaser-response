@@ -15,6 +15,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.metrics import confusion_matrix, f1_score, multilabel_confusion_matrix, classification_report
+from sklearn.utils import parallel_backend
 import pickle
 
 
@@ -180,20 +181,21 @@ def main():
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
         X, Y, category_names = load_data(database_filepath)
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
-        
-        print('Building model...')
-        model = build_model()
-        
-        print('Training model...')
-        model.fit(X_train, Y_train)
-        
-        print('Evaluating model...')
-        evaluate_model(model, X_test, Y_test, category_names)
 
-        print('Saving model...\n    MODEL: {}'.format(model_filepath))
-        save_model(model, model_filepath)
+        with parallel_backend('multiprocessing'):
+            print('Building model...')
+            model = build_model()
 
-        print('Trained model saved!')
+            print('Training model...')
+            model.fit(X_train, Y_train)
+
+            print('Evaluating model...')
+            evaluate_model(model, X_test, Y_test, category_names)
+
+            print('Saving model...\n    MODEL: {}'.format(model_filepath))
+            save_model(model, model_filepath)
+
+            print('Trained model saved!')
 
     else:
         print('Please provide the filepath of the disaster messages database '\
