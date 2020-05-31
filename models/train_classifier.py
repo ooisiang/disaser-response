@@ -11,13 +11,61 @@ from nltk.stem import WordNetLemmatizer
 import re
 
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.metrics import confusion_matrix, f1_score, multilabel_confusion_matrix, classification_report
 from sklearn.utils import parallel_backend
+from sklearn.base import BaseEstimator, TransformerMixin
 import pickle
+
+
+class NumberOfAdjExtractor(BaseEstimator, TransformerMixin):
+    """
+    This class is a feature transformer that extracts number of adjectives (normalized) from the disaster messages.
+    """
+
+    def number_of_adjectives(self, text):
+        """
+        This function calculates the number of adjectives in a disaster message and
+        normalizes it with the number of tokens in the disaster message.
+
+        Args:
+            text (str) -- a disaster message
+
+        Return:
+            adjective_counts_norm (float) -- number of adjectives (normalized)
+        """
+
+        adjective_counts = 0
+        adjective_counts_norm = 0
+        pos_tags = nltk.pos_tag(tokenize(text))
+        for tag in pos_tags:
+            if get_wordnet_tag(tag[1][0]) == 'a':
+                adjective_counts += 1
+
+        if len(pos_tags) != 0:
+            adjective_counts_norm = adjective_counts / len(pos_tags)
+
+        return adjective_counts_norm
+
+    def fit(self, x, y=None):
+        return self
+
+    def transform(self, X):
+        """
+        This transform function transforms disaster message to a feature - number of adjectives (normalized)
+
+        Args:
+            X (df) -- a dataframe consisting a single column of disaster messages
+
+        Return:
+            X_Adj (df) -- a dataframe consisting a single column of number of adjectives (normalized)
+            in each disaster message
+        """
+        X_Adj = pd.Series(X).apply(self.number_of_adjectives)
+        return pd.DataFrame(X_Adj, columns=['No_Adj_Norm'])
 
 
 def load_data(database_filepath):
@@ -80,7 +128,7 @@ def tokenize(text):
     lemmatizer = WordNetLemmatizer()
 
     for token in tokens:
-        if token not in stopwords.words("english"):
+        if (token not in stopwords.words("english")) & (token not in string.punctuation):
             token_pos = nltk.pos_tag(tokens)[0][1][0]
             words.append(lemmatizer.lemmatize(token, pos=get_wordnet_tag(token_pos)).strip())
 
@@ -90,9 +138,15 @@ def tokenize(text):
 def build_model():
     """
     This function aims to build a machine learning pipeline model with GridSearchCV.
-    The pipeline consists of CountVectorizer with the tokenize() function in this file, TfidfTransfomer and
-    RandomForestClassifier.
-    GridSearchCV is used to tune the hyperparameters of the transformers and classifier.
+    The pipeline consists of:
+    features:
+	    text_pipeline:
+		    - CountVectorizer() with the tokenize() function in this file
+		    - TfidfTransformer()
+	    adjective_counts: Number of adjectives (normalized)
+    classifier:
+        RandomForestClassifier().
+    GridSearchCV is used to tune the hyperparameters.
 
     Args:
         none
@@ -102,14 +156,24 @@ def build_model():
          for data training and prediction.
     """
 
-    pipeline = Pipeline([('vect', CountVectorizer(tokenizer=tokenize)),
-                         ('tfidf', TfidfTransformer()),
-                         ('clf', MultiOutputClassifier(RandomForestClassifier()))])
+    pipeline = Pipeline([
+        ('features', FeatureUnion([
+            ('text_pipeline', Pipeline([
+                ('vect', CountVectorizer(tokenizer=tokenize)),
+                ('tfidf', TfidfTransformer())
+            ])),
+
+            ('adjectives_counts', NumberOfAdjExtractor())
+        ])),
+
+        ('clf', MultiOutputClassifier(RandomForestClassifier(random_state=42)))
+    ])
 
     parameters = {
-        'vect__ngram_range': ((1, 1), (2, 2)),
-        'clf__estimator__min_samples_split': [2, 4],
-        'clf__estimator__min_samples_leaf': [1, 5]
+        'features__transformer_weights': (
+            {'text_pipeline': 1, 'adjectives_counts': 0.5},
+            {'text_pipeline': 0.5, 'adjectives_counts': 1}
+        )
     }
 
     cv = GridSearchCV(pipeline, param_grid=parameters, n_jobs=-1)
