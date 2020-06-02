@@ -30,10 +30,10 @@ def tokenize(text):
 # load data
 engine = create_engine('sqlite:///../data/DisasterResponse.db')
 df = pd.read_sql_table('DisasterResponseTable', engine)
+df_token_freq = pd.read_sql_table('TokensFreqTable', engine)
 
 # load model
 model = joblib.load("../models/classifier.pkl")
-
 
 # index webpage displays cool visuals and receives user input text for model
 @app.route('/')
@@ -48,6 +48,11 @@ def index():
     categories_names = df.iloc[:, -36:].columns.tolist()
     df_categories = df[categories_names].sum().sort_values(ascending=False)
     categories_counts = df_categories.tolist()
+
+    # extract top 10 most frequent tokens and the their frequencies
+    df_tokens_10 = df_token_freq.head(10)
+    tokens_10 = df_tokens_10['token'].values.tolist()
+    tokens_10_freq = df_tokens_10['frequency'].values.tolist()
 
     # create visuals
     graphs = [
@@ -84,11 +89,30 @@ def index():
                     'title': "Count"
                 },
                 'xaxis': {
-                    'title': "Categories",
+                    'title': "Category",
                     'tickangle': 45
                 },
                 'margin': {
                     'b': 160
+                }
+            }
+        },
+
+        {
+            'data': [
+                Bar(
+                    x=tokens_10,
+                    y=tokens_10_freq
+                )
+            ],
+
+            'layout': {
+                'title': 'Top 10 Most Used Words in Disaster Messages',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Word"
                 }
             }
         }
