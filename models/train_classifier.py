@@ -53,19 +53,22 @@ class NumberOfAdjExtractor(BaseEstimator, TransformerMixin):
     def fit(self, x, y=None):
         return self
 
-    def transform(self, X):
+    def transform(self, x):
         """
         This transform function transforms disaster message to a feature - number of adjectives (normalized)
 
         Args:
-            X (df) -- a dataframe consisting a single column of disaster messages
+            x (pandas series) -- a 1-d pandas series of disaster messages
 
         Return:
             X_Adj (df) -- a dataframe consisting a single column of number of adjectives (normalized)
             in each disaster message
         """
-        X_Adj = pd.Series(X).apply(self.number_of_adjectives)
-        return pd.DataFrame(X_Adj, columns=['No_Adj_Norm'])
+
+        x_adj = pd.Series(x).apply(self.number_of_adjectives)
+        x_adj_df = pd.DataFrame(x_adj)
+
+        return x_adj_df
 
 
 def load_data(database_filepath):
@@ -164,10 +167,11 @@ def build_model():
             ])),
 
             ('adjectives_counts', NumberOfAdjExtractor())
+
         ])),
 
         ('clf', MultiOutputClassifier(RandomForestClassifier(random_state=42)))
-    ])
+    ], verbose=True)
 
     parameters = {
         'features__transformer_weights': (
@@ -176,7 +180,7 @@ def build_model():
         )
     }
 
-    cv = GridSearchCV(pipeline, param_grid=parameters, n_jobs=-1)
+    cv = GridSearchCV(pipeline, param_grid=parameters, n_jobs=-1, verbose=1)
 
     return cv
 
