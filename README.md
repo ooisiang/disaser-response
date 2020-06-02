@@ -1,4 +1,6 @@
 # Disaster Response Pipeline Project
+This project aims to build an ETL and ML pipeline that categorizes disaster messages into 36 different categories. So that each disaster message can be distributed to the relevant department automatically.
+
 
 ## Getting Started
 
@@ -9,7 +11,11 @@ git clone https://github.com/ooisiang/disaser-response.git
 
 ## Prerequisites
 
-Project is still under work. _requirements.txt_ file will be provided soon.
+A requirements.txt file is provided in this repo to prepare the environment needed to run the code.
+Please install the packages by executing:
+```
+pip install -r requirements.txt
+```
 
 ## Instructions:
 
