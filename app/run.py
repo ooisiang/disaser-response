@@ -44,6 +44,11 @@ def index():
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
 
+    # extract disaster messages categories and names
+    categories_names = df.iloc[:, -36:].columns.tolist()
+    df_categories = df[categories_names].sum().sort_values(ascending=False)
+    categories_counts = df_categories.tolist()
+
     # create visuals
     graphs = [
         {
@@ -61,6 +66,29 @@ def index():
                 },
                 'xaxis': {
                     'title': "Genre"
+                }
+            }
+        },
+
+        {
+            'data': [
+                Bar(
+                    x=categories_names,
+                    y=categories_counts
+                )
+            ],
+
+            'layout': {
+                'title': 'Frequency of Message Categories',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Categories",
+                    'tickangle': 45
+                },
+                'margin': {
+                    'b': 160
                 }
             }
         }
