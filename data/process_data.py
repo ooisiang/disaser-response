@@ -2,6 +2,11 @@ import sys
 import numpy as np
 import pandas as pd
 from sqlalchemy import create_engine
+import os
+
+sys.path.append(os.path.abspath(os.path.join('..')))
+import models
+from models.train_classifier import tokenize
 
 
 def load_data(messages_filepath, categories_filepath):
@@ -89,20 +94,45 @@ def clean_data(df):
     return df_cleaned
 
 
-def save_data(df, database_filename):
+def cal_token_frequency(df):
+    """
+    This function aims to calculate the frequency of each token appeared in all disaster messages.
+
+    Args:
+        df (df) -- a dataframe with a single column of disaster message
+
+    Return:
+        tokens_freq (df) -- a dataframe with the frequency of each token found in all disaster messages
+    """
+
+    tokens_list = []
+
+    for message in df:
+        tokens = tokenize(message)
+        for token in tokens:
+            tokens_list.append(token)
+
+    tokens_freq = pd.DataFrame(pd.Series(tokens_list).value_counts(), columns=['frequency'])
+    tokens_freq['token'] = tokens_freq.index
+
+    return tokens_freq
+
+
+def save_data(df, database_filename, table_name):
     """
     This function aims to save a dataset into a sqlite database with the provided name.
 
     Args:
         df (df) -- a pandas dataframe that consists of disaster messages and corresponding categories.
-        database_filename (str) -- name of the sqlite database and SQL table.
+        database_filename (str) -- name of the sqlite database.
+        table_name (str) -- name of the SQL table.
 
     Return:
         none
     """
 
     engine = create_engine('sqlite:///{}'.format(database_filename))
-    df.to_sql('DisasterResponseTable', engine, index=False, if_exists='replace')
+    df.to_sql(table_name, engine, index=False, if_exists='replace')
 
 
 def main():
@@ -116,18 +146,22 @@ def main():
 
         print('Cleaning data...')
         df = clean_data(df)
-        
+
+        print('Computing token frequencies in data...')
+        df_tokens_freq = cal_token_frequency(df['message'])
+
         print('Saving data...\n    DATABASE: {}'.format(database_filepath))
-        save_data(df, database_filepath)
-        
+        save_data(df, database_filepath, 'DisasterResponseTable')
+        save_data(df_tokens_freq, database_filepath, 'TokensFreqTable')
+
         print('Cleaned data saved to database!')
-    
+
     else:
-        print('Please provide the filepaths of the messages and categories '\
-              'datasets as the first and second argument respectively, as '\
-              'well as the filepath of the database to save the cleaned data '\
-              'to as the third argument. \n\nExample: python process_data.py '\
-              'disaster_messages.csv disaster_categories.csv '\
+        print('Please provide the filepaths of the messages and categories '
+              'datasets as the first and second argument respectively, as '
+              'well as the filepath of the database to save the cleaned data '
+              'to as the third argument. \n\nExample: python process_data.py '
+              'disaster_messages.csv disaster_categories.csv '
               'DisasterResponse.db')
 
 
