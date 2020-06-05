@@ -13,6 +13,7 @@ import re
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.metrics import confusion_matrix, f1_score, multilabel_confusion_matrix, classification_report
@@ -148,7 +149,7 @@ def build_model():
 		    - TfidfTransformer()
 	    adjective_counts: Number of adjectives (normalized)
     classifier:
-        RandomForestClassifier().
+        DecisionTreeClassifier().
     GridSearchCV is used to tune the hyperparameters.
 
     Args:
@@ -168,16 +169,13 @@ def build_model():
 
             ('adjectives_counts', NumberOfAdjExtractor())
 
-        ])),
+        ], transformer_weights={'text_pipeline': 1.0, 'adjectives_counts': 1.0})),
 
-        ('clf', MultiOutputClassifier(RandomForestClassifier(random_state=42)))
+        ('clf', MultiOutputClassifier(DecisionTreeClassifier(random_state=42)))
     ], verbose=True)
 
     parameters = {
-        'features__transformer_weights': (
-            {'text_pipeline': 1, 'adjectives_counts': 0.5},
-            {'text_pipeline': 0.5, 'adjectives_counts': 1}
-        )
+        'clf__estimator__max_depth': (None, 2, 5, 7)
     }
 
     cv = GridSearchCV(pipeline, param_grid=parameters, n_jobs=-1, verbose=1)
@@ -289,9 +287,9 @@ def main():
             print('Trained model saved!')
 
     else:
-        print('Please provide the filepath of the disaster messages database '\
-              'as the first argument and the filepath of the pickle file to '\
-              'save the model to as the second argument. \n\nExample: python '\
+        print('Please provide the filepath of the disaster messages database '
+              'as the first argument and the filepath of the pickle file to '
+              'save the model to as the second argument. \n\nExample: python '
               'train_classifier.py ../data/DisasterResponse.db classifier.pkl')
 
 
