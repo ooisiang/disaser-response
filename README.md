@@ -1,5 +1,6 @@
 # Disaster Response Pipeline Project
-This project aims to build an ETL and ML pipeline that categorizes disaster messages into 36 different categories. So that each disaster message can be distributed to the relevant department automatically.
+This project aims to build an ETL and ML pipeline that categorizes disaster messages into 35 different categories. So that each disaster message can be distributed to the relevant department automatically.
+Please note that the original dataset has 36 categories. Since 'child_alone' category is not labeled in any disaster message, this category has been removed from the dataset as this does not add any value to the model.
 
 
 ## Getting Started
