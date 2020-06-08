@@ -40,6 +40,8 @@ def clean_data(df):
     duplicate disaster messages.
     This function splits the single column with 36 categories to 36 columns and the value of each category column
     will be extracted.
+    If there is any category that is not labeled in any disaster messages, this category will be removed. (The total
+    number of categories to be trained will differ from the total number of categories exist in the raw dataset)
     If any invalid values (not 0 or 1) are detected in the category columns, the corresponding rows will be removed.
 
     Args:
@@ -81,6 +83,14 @@ def clean_data(df):
     if df_cleaned.duplicated(subset='id').sum() != 0:
         df_cleaned.drop_duplicates(subset='id', inplace=True)
         print("    Duplicated disaster messages found in dataset. Deleting duplicates...")
+
+    # Remove categories that are not labeled in any disaster messages
+    empty_criteria = df_cleaned[category_colnames].sum() == 0
+    empty_columns = empty_criteria.index[empty_criteria].values.tolist()
+    if not empty_criteria.index[empty_criteria].empty:
+        df_cleaned.drop(columns=empty_columns, inplace=True)
+        categories.drop(columns=empty_columns, inplace=True)
+        print("    Empty categories found in dataset. Deleting empty categories {}...".format(empty_columns))
 
     # Check if there is any invalid values in the category columns. If yes, drop the corresponding rows
     for column in categories.columns:

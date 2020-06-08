@@ -45,7 +45,7 @@ def index():
     genre_names = list(genre_counts.index)
 
     # extract disaster messages categories and names
-    categories_names = df.iloc[:, -36:].columns.tolist()
+    categories_names = df.iloc[:, 4:].columns.tolist()
     df_categories = df[categories_names].sum().sort_values(ascending=False)
     categories_counts = df_categories.tolist()
 
